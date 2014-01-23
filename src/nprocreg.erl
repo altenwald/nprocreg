@@ -85,7 +85,7 @@ get_nodes() ->
     lists:sort([Node || Node <- gen_server:call(?SERVER, get_nodes),
         (net_adm:ping(Node)=:=pong orelse Node=:=node())]).
 
--spec start_function_on_node(node(), key(), fun() | undefined) -> {ok, pid()}.
+-spec start_function_on_node(node(), key(), fun() | undefined | {M::atom(),F::atom(),A::atom()}) -> {ok, pid()}.
 start_function_on_node(Node, Key, Function) ->
     gen_server:call({?SERVER, Node}, {start_function, Key, Function}).
 
