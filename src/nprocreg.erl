@@ -40,7 +40,7 @@ start_link() ->
 get_pid(Key) ->
     get_pid(Key, undefined).
 
--spec get_pid(key(), undefined | fun() | {M::atom(),F::atom(),A::atom()}) -> undefined | pid().
+-spec get_pid(key(), undefined | fun() | {M::atom(),F::atom(),A::[any()]}) -> undefined | pid().
 get_pid(Key, Function) ->
     %% Try to get the pid from the expected Node first. If that doesn't work, then
     %% try to get the pid from one of the other nodes. If we don't
@@ -57,7 +57,7 @@ get_pid(Key, Function) ->
             case Function of
                 undefined ->
                     undefined;
-                {M,F,A} when is_atom(M) andalso is_atom(F) andalso is_atom(A) ->
+                {M,F,A} when is_atom(M) andalso is_atom(F) andalso is_list(A) ->
                     start_function_on_node(ExpectedNode, Key, Function);
                 Function when is_function(Function,0) ->
                     start_function_on_node(ExpectedNode, Key, Function)
@@ -85,7 +85,7 @@ get_nodes() ->
     lists:sort([Node || Node <- gen_server:call(?SERVER, get_nodes),
         (net_adm:ping(Node)=:=pong orelse Node=:=node())]).
 
--spec start_function_on_node(node(), key(), fun() | undefined | {M::atom(),F::atom(),A::atom()}) -> {ok, pid()}.
+-spec start_function_on_node(node(), key(), fun() | undefined | {M::atom(),F::atom(),A::[any()]}) -> {ok, pid()}.
 start_function_on_node(Node, Key, Function) ->
     gen_server:call({?SERVER, Node}, {start_function, Key, Function}).
 
@@ -204,7 +204,7 @@ get_pid_local(Key, State) ->
             undefined
     end.
 
--spec start_function(key(), fun() | {M::atom(),F::atom(),A::atom()}, #state{}) -> {pid(), #state{}}.
+-spec start_function(key(), fun() | {M::atom(),F::atom(),A::[any()]}, #state{}) -> {pid(), #state{}}.
 start_function(Key, Function, State) when is_function(Function,0) ->
     %% Create the function, register locally.
     Pid = erlang:spawn_link(Function),
