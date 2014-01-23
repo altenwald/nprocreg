@@ -40,7 +40,7 @@ start_link() ->
 get_pid(Key) ->
     get_pid(Key, undefined).
 
--spec get_pid(key(), undefined | fun()) -> undefined | pid().
+-spec get_pid(key(), undefined | fun() | {M::atom(),F::atom(),A::atom()}) -> undefined | pid().
 get_pid(Key, Function) ->
     %% Try to get the pid from the expected Node first. If that doesn't work, then
     %% try to get the pid from one of the other nodes. If we don't
@@ -54,10 +54,12 @@ get_pid(Key, Function) ->
         {ok, Pid} ->
             Pid;
         undefined ->
-            if
-                Function == undefined ->
+            case Function of
+                undefined ->
                     undefined;
-                is_function(Function) ->
+                {M,F,A} when is_atom(M) andalso is_atom(F) andalso is_atom(A) ->
+                    start_function_on_node(ExpectedNode, Key, Function);
+                Function when is_function(Function,0) ->
                     start_function_on_node(ExpectedNode, Key, Function)
             end
     end.
@@ -202,11 +204,16 @@ get_pid_local(Key, State) ->
             undefined
     end.
 
--spec start_function(key(), fun(), #state{}) -> {pid(), #state{}}.
-start_function(Key, Function, State) ->
+-spec start_function(key(), fun() | {M::atom(),F::atom(),A::atom()}, #state{}) -> {pid(), #state{}}.
+start_function(Key, Function, State) when is_function(Function,0) ->
     %% Create the function, register locally.
     Pid = erlang:spawn_link(Function),
     NewPids = [{Key, Pid}|State#state.pids],
     NewState = State#state { pids=NewPids },
+    {Pid, NewState};
+
+start_function(Key, {M,F,A}, State) ->
+    {ok, Pid} = erlang:apply(M,F,A),
+    NewPids = [{Key,Pid}|State#state.pids],
+    NewState = State#state{pids=NewPids},
     {Pid, NewState}.
-    
